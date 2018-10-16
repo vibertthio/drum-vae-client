@@ -25,6 +25,11 @@
 .index-module__links___2B0jW a:hover, .index-module__title____kuSF a:hover, .index-module__foot___1wzgO a:hover {
   color: #ccc; }
 
+.index-module__links___2B0jW p, .index-module__title____kuSF p, .index-module__foot___1wzgO p {
+  color: #999;
+  letter-spacing: 0.2rem;
+  font-size: 0.2rem; }
+
 .index-module__title____kuSF {
   top: 12px; }
 
@@ -50,23 +55,19 @@
   /* 0.5 second transition effect to slide in or slide down the overlay (height or width, depending on reveal) */
   -webkit-transition: 0.5s; }
   .index-module__overlay___1Tmco .index-module__intro___Ipvau {
-    max-width: 600px;
+    max-width: 350px;
     margin: 0rem auto; }
     .index-module__overlay___1Tmco .index-module__intro___Ipvau p {
       z-index: 3;
-      font-size: 2.5rem;
-      letter-spacing: 0.2rem;
-      line-height: 50px;
+      font-size: 1.0rem;
+      letter-spacing: 0.1rem;
+      line-height: 1rem;
       font-family: monospace;
       color: #ffffff; }
-      @media screen and (max-width: 980px) {
-        .index-module__overlay___1Tmco .index-module__intro___Ipvau p {
-          line-height: 40px;
-          font-size: 2.0rem; } }
       @media screen and (max-width: 650px) {
         .index-module__overlay___1Tmco .index-module__intro___Ipvau p {
-          line-height: 30px;
-          font-size: 1.5rem;
+          line-height: 1rem;
+          font-size: 0.5rem;
           margin: 0rem 2rem; } }
       .index-module__overlay___1Tmco .index-module__intro___Ipvau p a {
         color: white;
