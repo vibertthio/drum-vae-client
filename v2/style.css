@@ -7,8 +7,8 @@
 .index-module__links___2B0jW, .index-module__title____kuSF, .index-module__foot___1wzgO {
   position: absolute;
   width: 100%;
-  font-family: monospace;
-  font-size: 0.5rem;
+  font-family: monospace, Arial, sans-serif;
+  font-size: 0.7rem;
   text-align: center;
   color: #ffffff; }
 
@@ -27,11 +27,56 @@
 
 .index-module__links___2B0jW p, .index-module__title____kuSF p, .index-module__foot___1wzgO p {
   color: #999;
-  letter-spacing: 0.2rem;
-  font-size: 0.2rem; }
+  letter-spacing: 0.2rem; }
 
 .index-module__title____kuSF {
-  top: 12px; }
+  top: 1.5rem; }
+  .index-module__title____kuSF a {
+    margin-right: 1rem; }
+
+.index-module__control___2am5x {
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 1rem;
+  bottom: 35px; }
+  .index-module__control___2am5x .index-module__slider___1z1XZ {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: space-evenly;
+        -ms-flex-pack: space-evenly;
+            justify-content: space-evenly;
+    width: 30rem;
+    margin: auto; }
+    .index-module__control___2am5x .index-module__slider___1z1XZ button {
+      background: none;
+      color: inherit;
+      border: none;
+      padding: 0;
+      font: inherit;
+      cursor: pointer;
+      outline: inherit; }
+    .index-module__control___2am5x .index-module__slider___1z1XZ input[type='range'] {
+      -webkit-appearance: none;
+      width: 7rem;
+      height: 1.5px;
+      border-radius: 5px;
+      outline: none;
+      display: inline;
+      margin: auto 0.5rem; }
+      .index-module__control___2am5x .index-module__slider___1z1XZ input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none;
+                appearance: none;
+        width: 10px;
+        height: 10px;
+        border-radius: 40%;
+        background: #b33b3b;
+        cursor: pointer;
+        -webkit-transition: background .05s ease-in-out;
+        transition: background .05s ease-in-out; }
+        .index-module__control___2am5x .index-module__slider___1z1XZ input[type='range']::-webkit-slider-thumb:hover {
+          background: #1abc9c; }
 
 .index-module__foot___1wzgO {
   bottom: 12px; }
@@ -61,8 +106,8 @@
       z-index: 3;
       font-size: 1.0rem;
       letter-spacing: 0.1rem;
-      line-height: 1rem;
-      font-family: monospace;
+      line-height: 1.5rem;
+      font-family: monospace, Arial, sans-serif;
       color: #ffffff; }
       @media screen and (max-width: 650px) {
         .index-module__overlay___1Tmco .index-module__intro___Ipvau p {
@@ -153,7 +198,7 @@
   margin: auto; }
   .index-module__loadingText___Z6tTU p {
     font-size: 1rem;
-    font-family: monospace;
+    font-family: monospace, Arial, sans-serif;
     color: #ffffff; }
 
 .index-module__canvas___1uoln {
