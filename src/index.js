@@ -7,6 +7,24 @@ import Renderer from './renderer';
 import playSvg from './assets/play.png';
 import pauseSvg from './assets/pause.png';
 
+const genres = [
+  'World',
+  'Country',
+  'Punk',
+  'Folk',
+  'Pop',
+  'NewAge',
+  'Rock',
+  'Metal',
+  'Latin',
+  'Blues',
+  'Electronic',
+  'RnB',
+  'Rap',
+  'Reggae',
+  'Jazz',
+];
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -34,7 +52,9 @@ class App extends Component {
     this.matrix = [];
     this.rawMatrix = [];
     this.beat = 0;
-    this.serverUrl = 'http://140.109.21.193:5002/';
+    // this.serverUrl = 'http://140.109.16.227:5002/';
+    // this.serverUrl = 'http://140.109.135.76:5010/';
+    this.serverUrl = 'http://musicai.citi.sinica.edu.tw/drumvae/';
   }
 
   componentDidMount() {
@@ -110,8 +130,8 @@ class App extends Component {
     this.getDrumVae(url);
   }
 
-  setDrumVaeDim(d1 = 3, d2 = 2) {
-    const url = this.serverUrl + 'dim/' + d1.toString() + '/' + d2.toString();
+  setDrumVaeGenre(g = 10) {
+    const url = this.serverUrl + 'adjust-genre/' + g.toString();
     this.getDrumVae(url);
   }
 
@@ -204,25 +224,41 @@ class App extends Component {
     }
   }
 
-  onKeyDown(event) {
-    event.stopPropagation();
+  onKeyDown(e) {
+    e.stopPropagation();
     const { loadingSamples } = this.state;
     if (!loadingSamples) {
-      if (event.keyCode === 32) {
+      console.log(`key: ${e.keyCode}`);
+      if (e.keyCode === 32) {
         // space
         const playing = this.samplesManager.trigger();
         this.setState({
           playing,
         });
       }
-      if (event.keyCode === 65) {
+      if (e.keyCode === 65) {
         // a
         this.renderer.triggerDisplay();
       }
-      if (event.keyCode === 82) {
+      if (e.keyCode === 82) {
         // r
         this.getDrumVaeRandom();
       }
+
+
+      if (e.keyCode === 49) {
+        this.setDrumVaeGenre(genres.indexOf('Pop'));
+      }
+      if (e.keyCode === 50) {
+        this.setDrumVaeGenre(genres.indexOf('Rock'));
+      }
+      if (e.keyCode === 51) {
+        this.setDrumVaeGenre(genres.indexOf('Jazz'));
+      }
+      if (e.keyCode === 52) {
+        this.setDrumVaeGenre(genres.indexOf('Electronic'));
+      }
+
     }
   }
 
@@ -355,9 +391,10 @@ class App extends Component {
             </p>
             <p>
               <strong>$ How to use $</strong>
-              <br /> [←, →, ↑, ↓]: move in latent space
+              <br /> [space]: play/pause
               <br /> [r]: random sample
-              <br /> [c]: random dimension
+              <br /> [drag]: rag the circular diagram to change the latent vector
+              <br /> [click]: click to change the drum pattern
             </p>
           </div>
           <button className={styles.overlayBtn} onClick={() => this.handleClickMenu()} />
