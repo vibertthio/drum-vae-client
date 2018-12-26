@@ -23,6 +23,13 @@ export default class LatentGraph {
     this.showDiagram = false;
     this.showIndication = true;
     this.dashAmounts = 40;
+
+    this.whiteColor = 'rgba(255, 255, 255, 1.0)';
+    this.redColor = 'rgba(255, 100, 100, 1.0)';
+    // this.redColor = '#f39c12';
+    // this.orangeColor = '#f39c12';
+
+    this.blinkAlpha = 0;
   }
 
   setDisplay() {
@@ -46,11 +53,10 @@ export default class LatentGraph {
   draw(ctx, latent, unit) {
     this.update();
     this.latent = latent;
-    const { selectedLatent, gridWidth } = this.renderer;
-    const dims = this.dims;
     ctx.save();
 
     ctx.translate(this.graphX, this.graphY);
+    this.drawBlink(ctx);
     this.renderer.drawFrame(ctx, this.graphWidth, this.graphHeight);
 
     if (this.showDiagram) {
@@ -65,6 +71,32 @@ export default class LatentGraph {
       this.drawIndication(ctx, this.graphWidth, this.graphHeight);
     }
 
+    this.drawLatent(ctx, unit)
+
+
+    ctx.restore();
+  }
+
+  drawBlink(ctx) {
+    this.blinkAlpha *= 0.9;
+
+    ctx.save();
+
+    ctx.fillStyle = '#FFF';
+    ctx.globalAlpha = this.blinkAlpha;
+    ctx.translate(this.graphWidth * -0.5, this.graphHeight * -0.5);
+    ctx.fillRect(0, 0, this.graphWidth, this.graphHeight);
+    ctx.restore();
+  }
+
+  blink() {
+    this.blinkAlpha = 1;
+  }
+
+  drawLatent(ctx, unit) {
+    const latent = this.latent;
+    const { selectedLatent, gridWidth } = this.renderer;
+    const dims = this.dims;
     const angle = 2 * Math.PI / dims;
 
     let xPrev;
@@ -85,7 +117,7 @@ export default class LatentGraph {
           this.graphRadius * Math.sin(angle * i),
         );
         ctx.lineTo(x, y);
-        ctx.strokeStyle = '#F00';
+        ctx.strokeStyle = this.redColor;
         ctx.stroke();
       }
 
@@ -119,7 +151,7 @@ export default class LatentGraph {
         let yTextPos = (40 + radius * 0.2) * this.graphWidth / 500;
         let textGap = 5;
 
-        ctx.fillStyle = '#C00';
+        ctx.fillStyle = this.redColor;
         ctx.strokeStyle = '#555'
 
         if (i > 24) {
@@ -146,14 +178,13 @@ export default class LatentGraph {
       ctx.arc(0, 0, this.graphRadius * 0.03, 0, Math.PI * 2, true);
       ctx.fillStyle = '#CCC';
       if (i === selectedLatent) {
-        ctx.fillStyle = '#F00';
+        ctx.fillStyle = this.redColor;
       }
       ctx.fill();
 
       ctx.restore();
     }
 
-    ctx.restore();
   }
 
   drawDashCircle(ctx) {
@@ -202,7 +233,7 @@ export default class LatentGraph {
     if (!this.fetching) {
       if (this.renderer.frameCount % 20 < 10) {
         ctx.save();
-        ctx.fillStyle = '#F00';
+        ctx.fillStyle = this.redColor;
         ctx.translate(-0.5 * w, -0.5 * h);
         ctx.translate(15, 15);
 

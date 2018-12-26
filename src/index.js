@@ -3,9 +3,10 @@ import { render } from 'react-dom';
 import styles from './index.module.scss';
 import info from './assets/info.png';
 import SamplesManager from './music/samples-manager';
-import Renderer from './renderer';
+import Renderer from './render/renderer';
 import playSvg from './assets/play.png';
 import pauseSvg from './assets/pause.png';
+import sig from './assets/sig.png';
 
 const genres = [
   'World',
@@ -32,6 +33,7 @@ class App extends Component {
     this.state = {
       open: false,
       playing: false,
+      slash: true,
       dragging: false,
       loadingProgress: 0,
       loadingSamples: true,
@@ -122,7 +124,7 @@ class App extends Component {
 
   getDrumVaeStatic() {
     const url = this.serverUrl + 'static';
-    this.getDrumVae(url);
+    this.getDrumVae(url, false);
   }
 
   getDrumVaeStaticShift(dir = 0, step = 0.2) {
@@ -247,17 +249,12 @@ class App extends Component {
 
 
       if (e.keyCode === 49) {
-        this.setDrumVaeGenre(genres.indexOf('Pop'));
+        this.renderer.latentGraph.blink();
       }
       if (e.keyCode === 50) {
-        this.setDrumVaeGenre(genres.indexOf('Rock'));
+        this.renderer.animationStart();
       }
-      if (e.keyCode === 51) {
-        this.setDrumVaeGenre(genres.indexOf('Jazz'));
-      }
-      if (e.keyCode === 52) {
-        this.setDrumVaeGenre(genres.indexOf('Electronic'));
-      }
+
 
     }
   }
@@ -288,9 +285,9 @@ class App extends Component {
       loadingProgress: amt,
     });
     if (amt === 8) {
-      const playing = this.samplesManager.trigger();
+      // const playing = this.samplesManager.trigger();
       this.setState({
-        playing,
+        // playing,
         loadingSamples: false,
       });
     }
@@ -320,17 +317,71 @@ class App extends Component {
     });
   }
 
+  onPlay() {
+    console.log('press play!');
+
+    const id =  'splash';
+    const splash = document.getElementById(id);
+    splash.style.opacity = 0.0;
+    setTimeout(() => {
+      splash.style.display = 'none';
+      this.setState({
+        slash: false,
+      });
+    }, 500);
+  }
+
   render() {
-    const loadingText = `loading..${this.state.loadingProgress}/9`;
-    const { playing, currentTableIndex } = this.state;
+    const { playing, currentTableIndex, loadingProgress } = this.state;
+    const loadingText = (loadingProgress < 9) ? `loading..${loadingProgress}/9` : 'play';
     const arr = Array.from(Array(9).keys());
     const mat = Array.from(Array(9 * 16).keys());
     const { gate, bpm } = this.state;
     return (
       <div>
+        <section className={styles.splash} id="splash">
+          <div className={styles.wrapper}>
+            <h1>Latent<br/>Inspector</h1>
+            <h2>
+              = 🥁 Drum + VAE
+            </h2>
+            <div className="device-supported">
+              <p className={styles.description}>
+                An interactive demo based on latent vector to generate drum pattern.
+                Modify the 32-dim latent vector to produce new drum patterns, and vice versa.
+              </p>
+
+              <button
+                className={styles.playButton}
+                id="splash-play-button"
+                onClick={() => this.onPlay()}
+              >
+                {loadingText}
+              </button>
+
+              <p className={styles.builtWith}>
+                Built with tone.js + Flask.
+                <br />
+                Learn more about <a className={styles.about} target="_blank" href="https://github.com/vibertthio">how it works.</a>
+              </p>
+
+              <p>Made by</p>
+              <img className="splash-icon" src={sig} width="100" height="auto" alt="Vibert Thio Icon" />
+            </div>
+          </div>
+          <div className={styles.badgeWrapper}>
+            <a className={styles.magentaLink} href="http://musicai.citi.sinica.edu.tw/" target="_blank" >
+              <div>Music and AI Lab</div>
+            </a>
+          </div>
+          <div className={styles.privacy}>
+            <a href="https://github.com/vibertthio" target="_blank">Privacy &amp; </a>
+            <a href="https://github.com/vibertthio" target="_blank">Terms</a>
+          </div>
+        </section>
         <div className={styles.title}>
           <a href="https://github.com/vibertthio/looop" target="_blank" rel="noreferrer noopener">
-            Drum VAE | MAC Lab
+            Latent Inspector
           </a>
           <button
             className={styles.btn}
@@ -357,7 +408,9 @@ class App extends Component {
         </div>
         <div className={styles.control}>
           <div className={styles.slider}>
-            <input type="range" min="1" max="100" value={gate * 100} onChange={this.handleChangeGateValue.bind(this)}/>
+            <div>
+              <input type="range" min="1" max="100" value={gate * 100} onChange={this.handleChangeGateValue.bind(this)}/>
+            </div>
             <button onClick={this.handleClickPlayButton.bind(this)} onKeyDown={e => e.preventDefault()}>
               {
                 !this.state.playing ?
@@ -365,7 +418,9 @@ class App extends Component {
                   (<img src={pauseSvg} width="30" height="30" alt="submit" />)
               }
             </button>
-            <input type="range" min="60" max="180" value={bpm} onChange={this.handleChangeBpmValue.bind(this)}/>
+            <div>
+              <input type="range" min="60" max="180" value={bpm} onChange={this.handleChangeBpmValue.bind(this)}/>
+            </div>
           </div>
         </div>
         {/* <div className={styles.foot}>
@@ -377,7 +432,8 @@ class App extends Component {
           <button className={styles.overlayBtn} onClick={() => this.handleClickMenu()} />
           <div className={styles.intro}>
             <p>
-              <strong>$ Drum VAE $</strong> <br />Press space to play/stop the music. Click on any block to change samples. Made by{' '}
+              <strong>$ Latent Inspector $</strong>
+              <br />An interactive demo based on latent vector to generate drum pattern. Made by{' '}
               <a href="https://vibertthio.com/portfolio/" target="_blank" rel="noreferrer noopener">
                 Vibert Thio
               </a>.{' Source code is on '}

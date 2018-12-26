@@ -1,17 +1,6 @@
 import LatentGraph from './latent-graph';
 import { Noise } from 'noisejs';
 
-function lerpColor(a, b, amount) {
-  var ah = +a.replace('#', '0x'),
-    bh = +b.replace('#', '0x'),
-    ar = ah >> 16, ag = ah >> 8 & 0xff, ab = ah & 0xff,
-    br = bh >> 16, bg = bh >> 8 & 0xff, bb = bh & 0xff,
-    rr = ar + amount * (br - ar),
-    rg = ag + amount * (bg - ag),
-    rb = ab + amount * (bb - ab);
-
-  return '#' + ((1 << 24) + (rr << 16) + (rg << 8) + rb | 0).toString(16).slice(1);
-}
 
 function lerp(v, s1, e1, s2, e2) {
   return (v - s1) * (e2 - s2) / (e1 - s1);
@@ -29,10 +18,13 @@ export default class Renderer {
     this.frameCount = 0;
     this.halt = true;
 
-    this.backgroundColor = 'rgba(37, 38, 35, 1.0)';
+    // this.backgroundColor = 'rgba(37, 38, 35, 1.0)';
+    this.backgroundColor = 'rgba(15, 15, 15, 1.0)';
     this.noteOnColor = 'rgba(255, 255, 255, 1.0)';
     this.mouseOnColor = 'rgba(150, 150, 150, 1.0)';
     this.noteOnCurrentColor = 'rgba(255, 100, 100, 1.0)';
+    this.redColor = this.noteOnCurrentColor;
+    this.whiteColor = this.noteOnColor;
     this.boxColor = 'rgba(200, 200, 200, 1.0)';
     this.extendAlpha = 0;
     this.currentUpdateDir = 0;
@@ -52,6 +44,9 @@ export default class Renderer {
     this.latentGraphs = [];
     this.noise = new Noise(Math.random());
 
+    // animation
+    this.decoderShift = 0;
+
     this.initMatrix();
     this.setDefaultDisplay();
   }
@@ -67,11 +62,11 @@ export default class Renderer {
   setDefaultDisplay() {
     this.showingLatents = false;
 
-    this.latentGraph.radiusRatio = 0.7;
+    this.latentGraph.radiusRatio = 0.65;
     this.latentGraph.widthRatio = 1.0;
-    this.latentGraph.heightRatio = 2.0;
+    this.latentGraph.heightRatio = 1.7;
     this.latentGraph.xShiftRatio = 0;
-    this.latentGraph.yShiftRatio = 0.6;
+    this.latentGraph.yShiftRatio = 0.8;
   }
 
   setMultipleDisplay() {
@@ -152,6 +147,9 @@ export default class Renderer {
     this.gridYShift = -h * 1.5 ;
 
     ctx.translate(width * 0.5, height * 0.5);
+
+    this.drawVAE(ctx);
+
     this.drawGrid(ctx, w, h);
     this.latentGraph.draw(ctx, this.latent, this.dist);
 
@@ -167,35 +165,41 @@ export default class Renderer {
 
     this.drawFrame(ctx, this.gridWidth * 1.1, this.gridHeight * 1.1);
 
-    ctx.translate(-w * 0.5, -h * 0.5);
-    const w_step  = w / 96;
+    ctx.translate(w * -0.5, h * -0.5);
+    const w_step = w / 96;
     const h_step = h / 9;
     for (let t = 0; t < 96; t += 1) {
       for (let d = 0; d < 9; d += 1) {
+        let recW = w_step;
+        let recH = h_step;
         ctx.save();
-        ctx.translate(t * w_step, d * h_step);
+        ctx.translate((t + 0.5) * w_step, (d + 0.5) * h_step);
         if (this.matrix[t][8 - d] > 0) {
 
           if (Math.abs(this.beat - t) < 3) {
             ctx.fillStyle = this.noteOnCurrentColor;
-            ctx.fillRect(0, 0, w_step * 1.2, h_step * 0.5);
+            recW = w_step * 1.5;
+            recH = h_step * 0.8;
           } else {
             ctx.fillStyle = this.noteOnColor;
-            ctx.fillRect(0, 0, w_step, h_step * 0.5);
+            recW = w_step * 1.0;
+            recH = h_step * 0.5;
           }
         } else if (
           t === this.mouseOnIndex[0] &&
           d === this.mouseOnIndex[1]
         ) {
           ctx.fillStyle = this.mouseOnColor;
-          ctx.fillRect(0, 0, w_step, h_step * 0.5);
+          recW = w_step * 1.0;
+          recH = h_step * 0.5;
         } else {
-          ctx.save();
           ctx.fillStyle = this.boxColor;
-          ctx.translate(0, h_step * 0.25);
-          ctx.fillRect(0, 0, w_step * 0.04, h_step * 0.1);
-          ctx.restore();
+          recW = w_step * 0.04;
+          recH = h_step * 0.1;
         }
+
+        ctx.translate(-0.5 * recW, -0.5 * recH);
+        ctx.fillRect(0, 0, recW, recH);
         ctx.restore();
       }
     }
@@ -273,7 +277,7 @@ export default class Renderer {
     return false;
   }
 
-  // draw frame
+  // frame
   drawFrame(ctx, w, h) {
     const unit = this.dist * 0.04;
 
@@ -317,6 +321,112 @@ export default class Renderer {
       this.latentGraphs[i].draw(ctx, this.latents[i], this.dist);
 
     }
+  }
+
+  // architecture
+  drawVAE(ctx) {
+    ctx.save();
+    ctx.fillStyle = '#555';
+    ctx.textAlign = 'center';
+    ctx.font = '1rem monospace';
+
+    // encoder
+    ctx.save();
+
+    ctx.translate(this.gridWidth * 0.4, this.gridHeight * -0.5);
+    this.drawFrame(ctx, this.gridWidth * 0.3, this.gridHeight * 0.6);
+
+    ctx.save();
+    ctx.translate(this.gridWidth * -0.08, this.gridHeight * -0.3);
+    ctx.fillText('encoder', 0, 0);
+    ctx.restore();
+
+    this.drawNN(ctx);
+
+    ctx.restore();
+
+    // decoder
+    ctx.save();
+
+    ctx.translate(this.gridWidth * -0.4, this.gridHeight * -0.5);
+    this.drawFrame(ctx, this.gridWidth * 0.3, this.gridHeight * 0.6);
+
+    ctx.save();
+    ctx.translate(this.gridWidth * -0.08, this.gridHeight * -0.3);
+    ctx.fillText('decoder', 0, 0);
+    ctx.restore();
+
+    this.drawNN(ctx);
+
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  drawNN(ctx) {
+
+    // update
+    this.decoderShift *= 0.9;
+
+    // draw
+    const radius = this.dist * 0.02;
+    const unit = this.dist * 0.15;
+    const yShift = this.dist * 0.08;
+    ctx.save();
+
+    for (let i = 0; i < 3; i += 1) {
+
+      ctx.fillStyle = this.redColor;
+      for (let j = 0; j < 4; j += 1) {
+        ctx.save();
+        ctx.strokeStyle = '#555';
+        ctx.beginPath();
+        ctx.moveTo(unit * (i - 1), yShift);
+        ctx.lineTo(unit * (j - 1.5), -yShift);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.translate(unit * (i - 1), yShift);
+
+      if (this.decoderShift > 0.01) {
+        ctx.save();
+        ctx.fillStyle = this.whiteColor;
+        ctx.translate(0, this.decoderShift * 2 * yShift);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2, true);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2, true);
+      ctx.fill();
+
+
+
+      ctx.restore();
+    }
+
+    ctx.fillStyle = this.redColor;
+    for (let i = 0; i < 4; i += 1) {
+
+      ctx.save();
+      ctx.translate(unit * (i - 1.5), -yShift);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2, true);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  animationStart() {
+    this.decoderShift = 1;
   }
 
 
