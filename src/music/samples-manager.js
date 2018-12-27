@@ -1,6 +1,7 @@
 import Tone, { Transport, Player, Sequence } from 'tone';
 import StartAudioContext from 'startaudiocontext';
 import drumUrls from './sound';
+import beepSound from './sound/effect/beep.wav';
 
 export default class SamplesManager {
   constructor(loadingSamplesCallback) {
@@ -44,6 +45,10 @@ export default class SamplesManager {
     this.loadSamples();
     this.initTable();
 
+    // effects
+    this.effects = [];
+    this.effects[0] = new Tone.Player(beepSound).toMaster();
+
     Transport.bpm.value = 120;
 
     this.sequence = new Sequence((time, col) => {
@@ -76,7 +81,7 @@ export default class SamplesManager {
     for (let i = 0; i < 9; i += 1) {
       this.samples[i] = new Player(this.drumUrls[i], () => {
         this.loadingStatus += 1;
-        console.log(`finish...${this.loadingStatus}/9: ${this.drumUrls[i]}`);
+        // console.log(`finish...${this.loadingStatus}/9: ${this.drumUrls[i]}`);
         this.loadingSamplesCallback(this.loadingStatus);
       }).toMaster();
       this.samples[i].volume.value = this.mixing[i];
@@ -99,5 +104,12 @@ export default class SamplesManager {
     }
     this.sequence.start();
     return true;
+  }
+
+  triggerSoundEffect(index = 0) {
+    if (index > -1 && index < this.effects.length) {
+      console.log(`trigger: ${index}`);
+      this.effects[index].start();
+    }
   }
 }

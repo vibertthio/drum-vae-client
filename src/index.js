@@ -6,7 +6,10 @@ import SamplesManager from './music/samples-manager';
 import Renderer from './render/renderer';
 import playSvg from './assets/play.png';
 import pauseSvg from './assets/pause.png';
+import shufflePng from './assets/shuffle.png';
 import sig from './assets/sig.png';
+import TWEEN from '@tweenjs/tween.js';
+
 
 const genres = [
   'World',
@@ -40,6 +43,7 @@ class App extends Component {
       currentTableIndex: 4,
       gate: 0.2,
       bpm: 120,
+      instructionStage: 0,
       screen: {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -50,17 +54,26 @@ class App extends Component {
     this.samplesManager = new SamplesManager((i) => {
       this.handleLoadingSamples(i);
     }),
+
     this.canvas = [];
     this.matrix = [];
     this.rawMatrix = [];
     this.beat = 0;
+    this.diffMatrix = [];
+    this.diffAnimationAlpha = 0;
+
+    this.serverUrl = 'http://musicai.citi.sinica.edu.tw/drumvae/';
     // this.serverUrl = 'http://140.109.16.227:5002/';
     // this.serverUrl = 'http://140.109.135.76:5010/';
-    this.serverUrl = 'http://musicai.citi.sinica.edu.tw/drumvae/';
+
+    // animation
+    this.TWEEN = TWEEN;
+    this.pauseChangeMatrix = false;
+    this.pauseChangeLatent = false;
   }
 
   componentDidMount() {
-    this.renderer = new Renderer(this.canvas);
+    this.renderer = new Renderer(this, this.canvas);
     if (!this.state.loadingSamples) {
       this.renderer.draw(this.state.screen);
     }
@@ -85,18 +98,60 @@ class App extends Component {
   }
 
   changeMatrix(mat) {
-    this.rawMatrix = mat;
-    this.updateMatrix()
-  }
+    // console.log('change matrix');
+    if (mat) {
+      this.rawMatrix = mat;
+    }
 
-  updateMatrix() {
     const { gate } = this.state;
     const m = this.rawMatrix.map(
       c => c.map(x => (x > gate ? 1 : 0)
     ));
+    this.tempMatrix = m;
+
+    this.diffMatrix = [];
+    if (this.matrix.length > 0) {
+      m.forEach((col, i) => {
+        col.forEach((x, j) => {
+          if (x !== this.matrix[i][j]) {
+            this.diffMatrix.push({i, j, value: x});
+            console.log(`i:${i}, j:${j}`);
+          }
+        });
+      });
+    }
+
+    if (this.diffMatrix.length > 0) {
+      this.diffAnimation = new this.TWEEN.Tween({t : 0})
+        .easing(this.TWEEN.Easing.Exponential.Out)
+        .to({ t: 1 }, 500)
+        .onUpdate(obj => {
+          const { t } = obj;
+          this.diffAnimationAlpha = 1 - t;
+        });
+    }
+
+    if (!this.pauseChangeMatrix) {
+      this.updateMatrix()
+    }
+  }
+
+  updateMatrix() {
+    // console.log('update matrix');
+    const m = this.tempMatrix;
     this.matrix = m;
     this.renderer.changeMatrix(m);
     this.samplesManager.changeMatrix(m);
+  }
+
+  changeLatent(latent) {
+    if (this.pauseChangeLatent) {
+      this.tempLatent = latent;
+    } else {
+      console.log('change instantly');
+      this.renderer.latent = latent;
+    }
+    this.pauseChangeLatent = false;
   }
 
   getDrumVae(url, restart = true) {
@@ -111,7 +166,7 @@ class App extends Component {
         this.changeMatrix(d['result']);
         this.renderer.latent = d['latent'];
         if (restart) {
-          this.samplesManager.start();
+          this.start();
         }
       })
       .catch(e => console.log(e));
@@ -127,37 +182,55 @@ class App extends Component {
     this.getDrumVae(url, false);
   }
 
-  getDrumVaeStaticShift(dir = 0, step = 0.2) {
-    const url = this.serverUrl + 'static/' + dir.toString() + '/' + step.toString();
-    this.getDrumVae(url);
+
+  postDrumVae(url, body, restart = false) {
+    fetch(url, {
+      method: 'POST', // *GET, POST, PUT, DELETE, etc.
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json'
+      },
+      body,
+    })
+      .then(r => r.json())
+      .then(d => {
+        this.changeMatrix(d['result']);
+        this.changeLatent(d['latent']);
+        if (restart) {
+          this.start();
+        }
+      })
+      .catch(e => console.log(e));
   }
 
-  setDrumVaeGenre(g = 10) {
-    const url = this.serverUrl + 'adjust-genre/' + g.toString();
-    this.getDrumVae(url);
+  postDrumVaeAdjustLatent(latent, restart = false) {
+    const url = this.serverUrl + 'adjust-latent';
+    const body = JSON.stringify({ latent });
+    this.postDrumVae(url, body, false);
   }
 
-  getDrumVaeAdjust(dim, value) {
-    const url = this.serverUrl + 'adjust-latent/' + dim.toString() + '/' + value.toString();
-    this.getDrumVae(url, false);
+  postDrumVaeAdjustData(data, restart = false) {
+    const url = this.serverUrl + 'adjust-data';
+    const body = JSON.stringify({ data });
+    this.postDrumVae(url, body, false);
   }
 
-  getDrumVaeAdjustData(i, j, value) {
-    const url = this.serverUrl
-      + 'adjust-data/'
-      + i.toString()
-      + '/'
-      + j.toString()
-      + '/'
-      + value.toString();
-    this.getDrumVae(url, false);
+  start() {
+    this.samplesManager.start();
+    this.setState({
+      playing: true,
+    });
   }
 
   update() {
+    // tween
+    TWEEN.update();
+
     const b = this.samplesManager.beat;
     if (!this.state.loadingSamples) {
       this.renderer.draw(this.state.screen, b);
     }
+
     requestAnimationFrame(() => { this.update() });
   }
 
@@ -179,42 +252,78 @@ class App extends Component {
 
   handleMouseDown(e) {
     e.stopPropagation();
-    const [dragging, onGrid] = this.renderer.handleMouseDown(e);
-    if (onGrid) {
-      // console.log('send pattern');
-      const [i, j_reverse] = this.renderer.mouseOnIndex;
-      const j = 8 - j_reverse;
-      this.rawMatrix[i][j] = (this.rawMatrix[i][j] < this.state.gate ? 1 : 0);
-      this.updateMatrix();
-      this.getDrumVaeAdjustData(i, j, this.rawMatrix[i][j])
-    }
-    if (dragging) {
-      this.setState({
-        dragging,
-      });
+    const { slash, open } = this.state;
+    if (!slash && !open) {
+      const [dragging, onGrid] = this.renderer.handleMouseDown(e);
+      if (onGrid) {
+        const [i, j_reverse] = this.renderer.mouseOnIndex;
+        const j = 8 - j_reverse;
+        this.rawMatrix[i][j] = (this.rawMatrix[i][j] < this.state.gate ? 1 : 0);
+        this.changeMatrix();
+        this.diffAnimation.start();
+        this.samplesManager.triggerSoundEffect(0);
+        this.pauseChangeLatent = true;
+        this.renderer.encoderAniStart(() => {
+          // this.start();
+          if (!this.pauseChangeLatent) {
+            this.renderer.latent = this.tempLatent;
+          }
+          this.pauseChangeLatent = false;
+        });
+        this.postDrumVaeAdjustData(this.rawMatrix);
+
+        if (this.state.instructionStage === 1) {
+          this.nextInstruction();
+        }
+      }
+      if (dragging) {
+        this.setState({
+          dragging,
+        });
+      }
     }
   }
 
   handleMouseUp(e) {
     e.stopPropagation();
     // const dragging = this.renderer.handleMouseDown(e);
+    const { slash, open } = this.state;
     const { selectedLatent, latent } = this.renderer;
-    if (this.state.dragging) {
-      this.getDrumVaeAdjust(selectedLatent, latent[selectedLatent]);
-    }
+    if (!slash && !open) {
 
-    this.setState({
-      dragging: false,
-    });
+      if (this.state.dragging) {
+        this.pauseChangeMatrix = true;
+        this.samplesManager.triggerSoundEffect(0);
+
+        this.renderer.decoderAniStart(() => {
+          // this.start();
+
+          if (this.diffAnimation) {
+            this.diffAnimation.start();
+          }
+          this.pauseChangeMatrix = false;
+          this.updateMatrix();
+        });
+
+        this.postDrumVaeAdjustLatent(latent);
+
+        if (this.state.instructionStage === 0) {
+          this.nextInstruction();
+        }
+      }
+
+      this.setState({
+        dragging: false,
+      });
+    }
   }
 
   handleMouseMove(e) {
     e.stopPropagation();
-    if (this.state.dragging) {
-      this.renderer.handleMouseMoveOnGraph(e);
-    } else {
+    if (!this.state.dragging) {
       this.renderer.handleMouseMove(e);
     }
+    this.renderer.handleDraggingOnGraph(e);
   }
 
   handleClickMenu() {
@@ -228,34 +337,31 @@ class App extends Component {
 
   onKeyDown(e) {
     e.stopPropagation();
-    const { loadingSamples } = this.state;
-    if (!loadingSamples) {
-      console.log(`key: ${e.keyCode}`);
-      if (e.keyCode === 32) {
-        // space
-        const playing = this.samplesManager.trigger();
-        this.setState({
-          playing,
-        });
-      }
-      if (e.keyCode === 65) {
-        // a
-        this.renderer.triggerDisplay();
-      }
-      if (e.keyCode === 82) {
-        // r
-        this.getDrumVaeRandom();
-      }
+    const { slash, loadingSamples } = this.state;
+    if (!slash) {
+      if (!loadingSamples) {
+        console.log(`key: ${e.keyCode}`);
+        if (e.keyCode === 32) {
+          // space
+          const playing = this.samplesManager.trigger();
+          this.setState({
+            playing,
+          });
+        }
+        if (e.keyCode === 65) {
+          // a
+          this.renderer.triggerDisplay();
+        }
+        if (e.keyCode === 82) {
+          // r
+          this.getDrumVaeRandom();
+        }
 
 
-      if (e.keyCode === 49) {
-        this.renderer.latentGraph.blink();
+        if (e.keyCode === 49) {
+          // 1
+        }
       }
-      if (e.keyCode === 50) {
-        this.renderer.animationStart();
-      }
-
-
     }
   }
 
@@ -280,6 +386,13 @@ class App extends Component {
     });
   }
 
+  nextInstruction() {
+    const { instructionStage } = this.state;
+    this.setState({
+      instructionStage: instructionStage + 1,
+    });
+  }
+
   handleLoadingSamples(amt) {
     this.setState({
       loadingProgress: amt,
@@ -298,7 +411,7 @@ class App extends Component {
     const gate = v / 100;
     console.log(`gate changed: ${gate}`);
     this.setState({ gate });
-    this.updateMatrix();
+    this.changeMatrix();
   }
 
   handleChangeBpmValue(e) {
@@ -318,7 +431,7 @@ class App extends Component {
   }
 
   onPlay() {
-    console.log('press play!');
+    // console.log('press play!');
 
     const id =  'splash';
     const splash = document.getElementById(id);
@@ -332,7 +445,7 @@ class App extends Component {
   }
 
   render() {
-    const { playing, currentTableIndex, loadingProgress } = this.state;
+    const { playing, currentTableIndex, loadingProgress, instructionStage } = this.state;
     const loadingText = (loadingProgress < 9) ? `loading..${loadingProgress}/9` : 'play';
     const arr = Array.from(Array(9).keys());
     const mat = Array.from(Array(9 * 16).keys());
@@ -390,6 +503,13 @@ class App extends Component {
           >
             <img alt="info" src={info} />
           </button>
+
+          <div className={styles.tips} id="tips">
+            {instructionStage < 2 ? <p>🙋‍♀️Tips</p> : ''}
+            {instructionStage === 0 ? (<p>👇Drag the <font color="#ff6464">red dots</font> in the latent vector</p>) : ''}
+            {instructionStage === 1 ? (<p>👇Click on the <font color="#2ecc71">drum patterns</font> to test the encoder</p>) : ''}
+            {instructionStage === 2 ? <p>🎉Have fun!</p> : ''}
+          </div>
         </div>
         <div>
           {this.state.loadingSamples && (
@@ -411,12 +531,15 @@ class App extends Component {
             <div>
               <input type="range" min="1" max="100" value={gate * 100} onChange={this.handleChangeGateValue.bind(this)}/>
             </div>
-            <button onClick={this.handleClickPlayButton.bind(this)} onKeyDown={e => e.preventDefault()}>
+            <button onClick={() => this.handleClickPlayButton()} onKeyDown={e => e.preventDefault()}>
               {
                 !this.state.playing ?
                   (<img src={playSvg} width="30" height="30" alt="submit" />) :
                   (<img src={pauseSvg} width="30" height="30" alt="submit" />)
               }
+            </button>
+            <button onClick={() => this.getDrumVaeRandom()} onKeyDown={e => e.preventDefault()}>
+              <img src={shufflePng} width="25" height="25" alt="shuffle" />
             </button>
             <div>
               <input type="range" min="60" max="180" value={bpm} onChange={this.handleChangeBpmValue.bind(this)}/>

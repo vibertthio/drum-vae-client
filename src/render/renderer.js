@@ -1,4 +1,5 @@
 import LatentGraph from './latent-graph';
+import NN from './nn';
 import { Noise } from 'noisejs';
 
 
@@ -7,13 +8,15 @@ function lerp(v, s1, e1, s2, e2) {
 }
 
 export default class Renderer {
-  constructor(canvas) {
+  constructor(app, canvas) {
+    this.app = app;
     this.canvas = canvas;
     this.matrix = [];
     this.latent = [];
     this.latentDisplay = [];
     this.dist = 0;
     this.beat = 0;
+    this.TWEEN = this.app.TWEEN;
 
     this.frameCount = 0;
     this.halt = true;
@@ -37,6 +40,9 @@ export default class Renderer {
     this.mouseOnIndex = [-1, -1];
 
     this.latentGraph = new LatentGraph(this);
+    this.decoder = new NN(this);
+    this.encoder = new NN(this);
+
 
     // fake data
     this.showingLatents = false;
@@ -44,8 +50,9 @@ export default class Renderer {
     this.latentGraphs = [];
     this.noise = new Noise(Math.random());
 
-    // animation
-    this.decoderShift = 0;
+    // ani
+    this.blinkAlpha = 0;
+    this.diffAnimationRadiusRatio = 4;
 
     this.initMatrix();
     this.setDefaultDisplay();
@@ -67,6 +74,7 @@ export default class Renderer {
     this.latentGraph.heightRatio = 1.7;
     this.latentGraph.xShiftRatio = 0;
     this.latentGraph.yShiftRatio = 0.8;
+    this.latentGraph.showIndication = false;
   }
 
   setMultipleDisplay() {
@@ -160,14 +168,40 @@ export default class Renderer {
   }
 
   drawGrid(ctx, w, h) {
+    const { instructionStage } = this.app.state;
     ctx.save();
     ctx.translate(this.gridXShift, this.gridYShift)
 
     this.drawFrame(ctx, this.gridWidth * 1.1, this.gridHeight * 1.1);
+    this.drawBlink(ctx);
 
     ctx.translate(w * -0.5, h * -0.5);
     const w_step = w / 96;
     const h_step = h / 9;
+
+    // change
+    if (this.app.diffAnimationAlpha > 0) {
+      this.app.diffMatrix.forEach(x => {
+        const { i, j, value } = x;
+        const t = i;
+        const d = 8 - j;
+        ctx.save();
+        ctx.translate((t + 0.5) * w_step, (d + 0.5) * h_step);
+        ctx.beginPath();
+        if (value > 0) {
+          ctx.strokeStyle = `rgba(255, 255, 255, ${this.app.diffAnimationAlpha})`;
+        } else {
+          ctx.strokeStyle = `rgba(255, 100, 100, ${this.app.diffAnimationAlpha})`;
+        }
+        const radius = w_step * (1 - this.app.diffAnimationAlpha) * this.diffAnimationRadiusRatio;
+        ctx.arc(0, 0, radius, 0, Math.PI * 2, true);
+        ctx.stroke();
+        ctx.restore();
+      })
+    }
+
+
+
     for (let t = 0; t < 96; t += 1) {
       for (let d = 0; d < 9; d += 1) {
         let recW = w_step;
@@ -185,17 +219,26 @@ export default class Renderer {
             recW = w_step * 1.0;
             recH = h_step * 0.5;
           }
-        } else if (
+        } else {
+          // ctx.fillStyle = this.boxColor;
+          ctx.fillStyle = 'rgba(46, 204, 113, 1)';
+          recW = w_step * 0.1;
+          recH = h_step * 0.15;
+        }
+
+        if (
           t === this.mouseOnIndex[0] &&
           d === this.mouseOnIndex[1]
         ) {
           ctx.fillStyle = this.mouseOnColor;
           recW = w_step * 1.0;
           recH = h_step * 0.5;
-        } else {
-          ctx.fillStyle = this.boxColor;
-          recW = w_step * 0.04;
-          recH = h_step * 0.1;
+
+          ctx.beginPath();
+          const value = Math.sin(this.frameCount * 0.05);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 - 0.2 * value})`;
+          ctx.arc(0, 0, this.latentGraph.graphRadius * 0.15 * (1 + 0.3 * value), 0, Math.PI * 2, true);
+          ctx.stroke();
         }
 
         ctx.translate(-0.5 * recW, -0.5 * recH);
@@ -236,22 +279,29 @@ export default class Renderer {
     ];
   }
 
-  handleMouseMoveOnGraph(e) {
+  handleDraggingOnGraph(e) {
+    const { dragging } = this.app.state;
     const { graphX, graphY, graphRadius, graphRadiusRatio } = this.latentGraph;
     const r = Math.pow(this.dist, 2);
     let x = e.clientX - this.width * 0.5;
     let y = e.clientY - this.height * 0.5;
     let d1 = Math.pow(x - graphX, 2) + Math.pow(y - graphY, 2);
     if (d1 < r * 1.2 & d1 > r * 0.1) {
-      const d = Math.sqrt(d1);
-      const range = 0.1;
-      const radius = range * graphRadiusRatio * this.dist + graphRadius;
-      const v = lerp(d, graphRadius, radius, 0, range);
-      this.latent[this.selectedLatent] = v;
+
+      if (dragging) {
+        const d = Math.sqrt(d1);
+        const range = 0.1;
+        const radius = range * graphRadiusRatio * this.dist + graphRadius;
+        const v = lerp(d, graphRadius, radius, 0, range);
+        this.latent[this.selectedLatent] = v;
+      } else {
+        this.handleLatentGraphClick(x, y);
+      }
     }
   }
 
   handleMouseMove(e) {
+    this.latentGraph.handleMouseMove(e);
     const x = e.clientX - (this.width * 0.5 + this.gridXShift - this.gridWidth * 0.5);
     const y = e.clientY - (this.height * 0.5 + this.gridYShift - this.gridHeight * 0.5);
     const w = this.gridWidth;
@@ -323,7 +373,7 @@ export default class Renderer {
     }
   }
 
-  // architecture
+  // vae
   drawVAE(ctx) {
     ctx.save();
     ctx.fillStyle = '#555';
@@ -333,101 +383,75 @@ export default class Renderer {
     // encoder
     ctx.save();
 
-    ctx.translate(this.gridWidth * 0.4, this.gridHeight * -0.5);
-    this.drawFrame(ctx, this.gridWidth * 0.3, this.gridHeight * 0.6);
+    ctx.translate(this.gridWidth * 0.25, this.gridHeight * -0.5);
+    this.drawFrame(ctx, this.gridWidth * 0.4, this.gridHeight * 0.6);
 
     ctx.save();
     ctx.translate(this.gridWidth * -0.08, this.gridHeight * -0.3);
     ctx.fillText('encoder', 0, 0);
     ctx.restore();
 
-    this.drawNN(ctx);
+    this.encoder.draw(ctx);
 
     ctx.restore();
 
     // decoder
     ctx.save();
 
-    ctx.translate(this.gridWidth * -0.4, this.gridHeight * -0.5);
-    this.drawFrame(ctx, this.gridWidth * 0.3, this.gridHeight * 0.6);
+    ctx.translate(this.gridWidth * -0.25, this.gridHeight * -0.5);
+    this.drawFrame(ctx, this.gridWidth * 0.4, this.gridHeight * 0.6);
 
     ctx.save();
     ctx.translate(this.gridWidth * -0.08, this.gridHeight * -0.3);
     ctx.fillText('decoder', 0, 0);
     ctx.restore();
 
-    this.drawNN(ctx);
+    this.decoder.draw(ctx);
 
     ctx.restore();
 
     ctx.restore();
   }
 
-  drawNN(ctx) {
+  decoderAniStart(callback) {
+    this.diffAnimationRadiusRatio = 4;
 
-    // update
-    this.decoderShift *= 0.9;
+    const aniMatrix = new this.TWEEN.Tween({ t: 0 })
+      .onStart(callback)
+      .to({ t: 1 }, 300);
 
-    // draw
-    const radius = this.dist * 0.02;
-    const unit = this.dist * 0.15;
-    const yShift = this.dist * 0.08;
+    let aniBlink = this.latentGraph.aniBlink();
+    let aniDecoder = this.decoder.aniDecoder(aniMatrix);
+
+    aniBlink.start();
+    aniDecoder.start();
+  }
+
+
+  encoderAniStart(callback) {
+    this.diffAnimationRadiusRatio = 8;
+
+    const aniChange = this.latentGraph.aniChange();
+    const aniMatrix = new this.TWEEN.Tween({ t: 0 })
+      .onStart(callback)
+      .to({ t: 1 }, 1)
+      .chain(aniChange);
+
+    // aniChange.onStart(callback);
+    const aniEncoder = this.encoder.aniEncoder(aniMatrix);
+
+
+    // aniBlink.start();
+    aniEncoder.start();
+  }
+
+  drawBlink(ctx) {
     ctx.save();
 
-    for (let i = 0; i < 3; i += 1) {
-
-      ctx.fillStyle = this.redColor;
-      for (let j = 0; j < 4; j += 1) {
-        ctx.save();
-        ctx.strokeStyle = '#555';
-        ctx.beginPath();
-        ctx.moveTo(unit * (i - 1), yShift);
-        ctx.lineTo(unit * (j - 1.5), -yShift);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      ctx.save();
-      ctx.translate(unit * (i - 1), yShift);
-
-      if (this.decoderShift > 0.01) {
-        ctx.save();
-        ctx.fillStyle = this.whiteColor;
-        ctx.translate(0, this.decoderShift * 2 * yShift);
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, 0, Math.PI * 2, true);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, Math.PI * 2, true);
-      ctx.fill();
-
-
-
-      ctx.restore();
-    }
-
-    ctx.fillStyle = this.redColor;
-    for (let i = 0; i < 4; i += 1) {
-
-      ctx.save();
-      ctx.translate(unit * (i - 1.5), -yShift);
-
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, Math.PI * 2, true);
-      ctx.fill();
-
-      ctx.restore();
-    }
+    ctx.translate(this.gridWidth * -0.55, this.gridHeight * -0.55);
+    ctx.fillStyle = `rgba(255, 255, 255, ${Math.sin(this.blinkAlpha * Math.PI)})`;
+    ctx.fillRect(0, 0, this.gridWidth * 1.1, this.gridHeight * 1.1)
 
     ctx.restore();
   }
-
-  animationStart() {
-    this.decoderShift = 1;
-  }
-
-
 }

@@ -1,7 +1,10 @@
+import { createContext } from "vm";
+
 export default class LatentGraph {
 
   constructor(renderer, rr = 0.6, wr = 0.5, hr = 1.5 , xsr = -0.25, ysr = 0.6) {
     this.renderer = renderer;
+    this.TWEEN = renderer.TWEEN;
     this.latent = [];
     this.dims = 32;
     this.graphX = 0;
@@ -29,7 +32,9 @@ export default class LatentGraph {
     // this.redColor = '#f39c12';
     // this.orangeColor = '#f39c12';
 
+    this.mouseIn = false;
     this.blinkAlpha = 0;
+    this.changeAlpha = 0;
   }
 
   setDisplay() {
@@ -48,6 +53,13 @@ export default class LatentGraph {
     this.graphHeight = dist * this.heightRatio;
     this.graphY = dist * this.yShiftRatio;
     this.graphX = gridWidth * 1.1 * this.xShiftRatio  ;
+
+    // hover effect
+    if (this.mouseIn) {
+      this.radiusRatio += (0.62 - this.radiusRatio) * 0.1;
+    } else {
+      this.radiusRatio += (0.6 - this.radiusRatio) * 0.1;
+    }
   }
 
   draw(ctx, latent, unit) {
@@ -56,7 +68,6 @@ export default class LatentGraph {
     ctx.save();
 
     ctx.translate(this.graphX, this.graphY);
-    this.drawBlink(ctx);
     this.renderer.drawFrame(ctx, this.graphWidth, this.graphHeight);
 
     if (this.showDiagram) {
@@ -77,25 +88,11 @@ export default class LatentGraph {
     ctx.restore();
   }
 
-  drawBlink(ctx) {
-    this.blinkAlpha *= 0.9;
-
-    ctx.save();
-
-    ctx.fillStyle = '#FFF';
-    ctx.globalAlpha = this.blinkAlpha;
-    ctx.translate(this.graphWidth * -0.5, this.graphHeight * -0.5);
-    ctx.fillRect(0, 0, this.graphWidth, this.graphHeight);
-    ctx.restore();
-  }
-
-  blink() {
-    this.blinkAlpha = 1;
-  }
 
   drawLatent(ctx, unit) {
     const latent = this.latent;
-    const { selectedLatent, gridWidth } = this.renderer;
+    const { selectedLatent, frameCount } = this.renderer;
+    const { instructionStage } = this.renderer.app.state;
     const dims = this.dims;
     const angle = 2 * Math.PI / dims;
 
@@ -143,6 +140,17 @@ export default class LatentGraph {
 
       ctx.translate(x, y);
 
+      //blink
+      if (i === selectedLatent && this.blinkAlpha > 0) {
+        ctx.save();
+        ctx.beginPath();
+        const r = this.graphRadius * 0.3 * (1 - this.blinkAlpha);
+        ctx.strokeStyle = `rgba(255, 100, 100, ${this.blinkAlpha})`;
+        ctx.arc(0, 0, r, 0, Math.PI * 2, true);
+        ctx.stroke();
+        ctx.restore()
+      }
+
       if (i === selectedLatent && this.showText) {
         let xTextPos = [
           (40 + 0.35 * (160 - radius)) * this.graphWidth / 500,
@@ -175,12 +183,22 @@ export default class LatentGraph {
       }
 
       ctx.beginPath();
-      ctx.arc(0, 0, this.graphRadius * 0.03, 0, Math.PI * 2, true);
+      const ratio = (i === selectedLatent) ? 0.04 : 0.03;
+      ctx.arc(0, 0, this.graphRadius * ratio, 0, Math.PI * 2, true);
       ctx.fillStyle = '#CCC';
       if (i === selectedLatent) {
         ctx.fillStyle = this.redColor;
       }
       ctx.fill();
+
+      // if (i === selectedLatent && instructionStage === 0) {
+      if (i === selectedLatent) {
+        ctx.beginPath();
+        const value = Math.sin(frameCount * 0.05);
+        ctx.strokeStyle = `rgba(255, 100, 100, ${0.5 - 0.2 * value})`;
+        ctx.arc(0, 0, this.graphRadius * 0.15 * (1 + 0.3 * value), 0, Math.PI * 2, true);
+        ctx.stroke();
+      }
 
       ctx.restore();
     }
@@ -194,6 +212,29 @@ export default class LatentGraph {
       ctx.arc(0, 0, this.graphRadius, i * a, i * a + 0.1);
       ctx.strokeStyle = '#888';
       ctx.stroke();
+    }
+
+    // change
+    if (this.changeAlpha > 0) {
+      ctx.save();
+      ctx.beginPath();
+      const r = this.graphRadius * (0.95 + (1 - this.changeAlpha) * 0.5);
+      ctx.strokeStyle = `rgba(255, 100, 100, ${this.changeAlpha})`;
+      ctx.arc(0, 0, r, 0, Math.PI * 2, true);
+      ctx.stroke();
+      ctx.restore()
+    }
+  }
+
+  // mouse
+  handleMouseMove(e) {
+    const { width, height } = this.renderer;
+    const x = e.clientX - width * 0.5 - this.graphX;
+    const y = e.clientY - height * 0.5 - this.graphY;
+    if (Math.abs(x) < this.graphWidth * 0.5 && Math.abs(y) < this.graphHeight * 0.5) {
+      this.mouseIn = true;
+    } else {
+      this.mouseIn = false;
     }
   }
 
@@ -255,6 +296,26 @@ export default class LatentGraph {
 
       ctx.restore();
     }
+  }
+
+  aniBlink() {
+    this.aniIn = new this.TWEEN.Tween({ t: 1 })
+      .to({ t: 0 }, 600)
+      .onUpdate(obj => {
+        const { t } = obj;
+        this.blinkAlpha = t;
+      });
+    return this.aniIn;
+  }
+
+  aniChange() {
+    this.aniIn = new this.TWEEN.Tween({ t: 1 })
+      .to({ t: 0 }, 600)
+      .onUpdate(obj => {
+        const { t } = obj;
+        this.changeAlpha = t;
+      });
+    return this.aniIn;
   }
 
 

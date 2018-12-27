@@ -9,6 +9,19 @@ body {
   overflow: hidden;
 }
 
+
+.dimming {
+  animation-name: dim;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+
+  @keyframes dim {
+    0%   { opacity: 0.3; }
+    50%  { opacity: 1.0; }
+    100% { opacity: 0.3; }
+  }
+}
+
 .no-btn-style {
   background-color: Transparent;
   background-repeat: no-repeat;
@@ -83,6 +96,21 @@ body {
     }
   }
 
+  .tips {
+    @extend .dimming;
+    width: 40%;
+    margin: 0.8rem auto;
+
+    p {
+      margin: 0.1rem;
+      font-size: 1rem;
+    }
+
+    @media screen and (max-width: 1000px) {
+      margin: 2rem auto;
+    }
+  }
+
 }
 
 
@@ -130,6 +158,14 @@ $range-label-width: 60px !default;
       font: inherit;
       cursor: pointer;
       outline: inherit;
+
+      img {
+        opacity: 0.7;
+        transition: opacity 0.3s;
+        &:hover {
+          opacity: 1.0;
+        }
+      }
     }
 
     input[type='range'] {
