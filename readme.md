@@ -1,6 +1,8 @@
-## 0.3.0
+# Latent Inspector
 
-> ## [play it](http://vibertthio.com/drum-vae-client/public/)
+>  ### [play it](http://vibertthio.com/drum-vae-client/public/)
+
+## 0.3.0
 
 ![](./assets/sc-04.png)
 
