@@ -216,21 +216,36 @@ export default class Renderer {
             recH = h_step * 0.8;
           } else {
             ctx.fillStyle = this.noteOnColor;
-            recW = w_step * 1.0;
-            recH = h_step * 0.5;
+            if (t % 6 === 0) {
+              recW = w_step * 1.0;
+              recH = h_step * 0.5;
+            } else {
+              recW = w_step * 0.8;
+              recH = h_step * 0.4;
+            }
           }
         } else {
           // ctx.fillStyle = this.boxColor;
-          ctx.fillStyle = 'rgba(46, 204, 113, 1)';
-          recW = w_step * 0.1;
-          recH = h_step * 0.15;
+          if (t % 24 === 0) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+          } else {
+            ctx.fillStyle = 'rgba(46, 204, 113, 1)';
+          }
+
+          if (t % 6 === 0) {
+            recW = w_step * 0.1;
+            recH = h_step * 0.3;
+          } else {
+            recW = w_step * 0.08;
+            recH = h_step * 0.15;
+          }
         }
 
         if (
           t === this.mouseOnIndex[0] &&
           d === this.mouseOnIndex[1]
         ) {
-          ctx.fillStyle = this.mouseOnColor;
+          ctx.fillStyle = 'rgba(46, 204, 113, 1)';
           recW = w_step * 1.0;
           recH = h_step * 0.5;
 

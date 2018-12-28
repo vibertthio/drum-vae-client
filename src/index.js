@@ -44,6 +44,7 @@ class App extends Component {
       gate: 0.2,
       bpm: 120,
       instructionStage: 0,
+      waitingServer: false,
       screen: {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -115,7 +116,7 @@ class App extends Component {
         col.forEach((x, j) => {
           if (x !== this.matrix[i][j]) {
             this.diffMatrix.push({i, j, value: x});
-            console.log(`i:${i}, j:${j}`);
+            // console.log(`i:${i}, j:${j}`);
           }
         });
       });
@@ -148,13 +149,12 @@ class App extends Component {
     if (this.pauseChangeLatent) {
       this.tempLatent = latent;
     } else {
-      console.log('change instantly');
       this.renderer.latent = latent;
     }
     this.pauseChangeLatent = false;
   }
 
-  getDrumVae(url, restart = true) {
+  getDrumVae(url, restart = true, callback = false) {
     fetch(url, {
       headers: {
         'content-type': 'application/json'
@@ -164,22 +164,49 @@ class App extends Component {
       .then(r => r.json())
       .then(d => {
         this.changeMatrix(d['result']);
-        this.renderer.latent = d['latent'];
+        this.changeLatent(d['latent']);
         if (restart) {
           this.start();
+        }
+        if (callback) {
+          this.onGetDrumVaeComplete();
         }
       })
       .catch(e => console.log(e));
   }
 
   getDrumVaeRandom() {
+    this.renderer.latentGraph.showIndication = true;
+    this.setState({
+      waitingServer: true,
+    });
     const url = this.serverUrl + 'rand';
-    this.getDrumVae(url);
+    this.getDrumVae(url, true, true);
   }
 
   getDrumVaeStatic() {
+    this.renderer.latentGraph.showIndication = true;
+    this.setState({
+      waitingServer: true,
+    });
     const url = this.serverUrl + 'static';
-    this.getDrumVae(url, false);
+    this.getDrumVae(url, false, true);
+  }
+
+  onGetDrumVaeComplete() {
+    const { waitingServer } = this.state;
+    if (waitingServer) {
+      this.renderer.latentGraph.showIndication = false;
+
+      if (this.diffAnimation) {
+        this.diffAnimation.start();
+      }
+
+      this.renderer.latentGraph.aniChange().start();
+      this.setState({
+        waitingServer: false,
+      });
+    }
   }
 
 
@@ -340,7 +367,7 @@ class App extends Component {
     const { slash, loadingSamples } = this.state;
     if (!slash) {
       if (!loadingSamples) {
-        console.log(`key: ${e.keyCode}`);
+        // console.log(`key: ${e.keyCode}`);
         if (e.keyCode === 32) {
           // space
           const playing = this.samplesManager.trigger();
@@ -355,6 +382,10 @@ class App extends Component {
         if (e.keyCode === 82) {
           // r
           this.getDrumVaeRandom();
+        }
+        if (e.keyCode === 84) {
+          // t
+          this.getDrumVaeStatic();
         }
 
 
@@ -409,7 +440,7 @@ class App extends Component {
   handleChangeGateValue(e) {
     const v = e.target.value;
     const gate = v / 100;
-    console.log(`gate changed: ${gate}`);
+    // console.log(`gate changed: ${gate}`);
     this.setState({ gate });
     this.changeMatrix();
   }
