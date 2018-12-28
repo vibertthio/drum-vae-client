@@ -1,5 +1,7 @@
 ## 0.3.0
 
+> ## [play it](http://vibertthio.com/drum-vae-client/public/)
+
 ![](./assets/sc-04.png)
 
 

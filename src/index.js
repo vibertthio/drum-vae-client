@@ -506,7 +506,7 @@ class App extends Component {
               <p className={styles.builtWith}>
                 Built with tone.js + Flask.
                 <br />
-                Learn more about <a className={styles.about} target="_blank" href="https://github.com/vibertthio">how it works.</a>
+                Learn more about <a className={styles.about} target="_blank" href="https://github.com/vibertthio/drum-vae-client">how it works.</a>
               </p>
 
               <p>Made by</p>
@@ -519,12 +519,12 @@ class App extends Component {
             </a>
           </div>
           <div className={styles.privacy}>
-            <a href="https://github.com/vibertthio" target="_blank">Privacy &amp; </a>
-            <a href="https://github.com/vibertthio" target="_blank">Terms</a>
+            <a href="https://github.com/vibertthio/drum-vae-client" target="_blank">Privacy &amp; </a>
+            <a href="https://github.com/vibertthio/drum-vae-client" target="_blank">Terms</a>
           </div>
         </section>
         <div className={styles.title}>
-          <a href="https://github.com/vibertthio/looop" target="_blank" rel="noreferrer noopener">
+          <a href="https://github.com/vibertthio/drum-vae-client" target="_blank" rel="noreferrer noopener">
             Latent Inspector
           </a>
           <button
@@ -592,7 +592,7 @@ class App extends Component {
                 Vibert Thio
               </a>.{' Source code is on '}
               <a
-                href="https://github.com/vibertthio"
+                href="https://github.com/vibertthio/drum-vae-client"
                 target="_blank"
                 rel="noreferrer noopener"
               >

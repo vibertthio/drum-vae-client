@@ -12,7 +12,8 @@
     "start": "serve public/",
     "lint": "eslint ./src",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d public"
+    "deploy": "gh-pages -d public",
+    "deploy-public": "gh-pages -d public -e public"
   },
   "keywords": [],
   "author": "",
