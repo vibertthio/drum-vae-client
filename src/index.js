@@ -577,11 +577,6 @@ class App extends Component {
             </div>
           </div>
         </div>
-        {/* <div className={styles.foot}>
-          <a href="https://vibertthio.com/portfolio/" target="_blank" rel="noreferrer noopener">
-            Vibert Thio
-          </a>
-        </div> */}
         <div id="menu" className={styles.overlay}>
           <button className={styles.overlayBtn} onClick={() => this.handleClickMenu()} />
           <div className={styles.intro}>
