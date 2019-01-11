@@ -487,7 +487,7 @@ class App extends Component {
           <div className={styles.wrapper}>
             <h1>Latent<br/>Inspector</h1>
             <h2>
-              = 🥁 Drum + VAE
+              = 🥁 Drum + 🤖 VAE
             </h2>
             <div className="device-supported">
               <p className={styles.description}>
