@@ -2,8 +2,9 @@
 
 >  ### [play it](http://vibertthio.com/drum-vae-client/public/)
 
-#### = 🥁 Drum +  🤖 VAE
-
+<h4 align="center">
+= 🥁 Drum +  🤖 VAE
+</h4>
 
 <p align="center">
   <img src="./assets/drum-vae.gif" height="600px"/>
