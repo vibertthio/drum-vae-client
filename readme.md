@@ -1,6 +1,6 @@
-# 🔍 Latent Inspector
-
->  ### [play it](http://vibertthio.com/drum-vae-client/public/)
+<h1 align="center">
+🔍 Latent Inspector | <a href="http://vibertthio.com/drum-vae-client/public/" target="_blank">Play It<a/>
+</h1>
 
 <h4 align="center">
 = 🥁 Drum +  🤖 VAE
