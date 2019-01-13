@@ -6,7 +6,7 @@
 
 
 <p align="center">
-  <img src="./assets/drum-vae.gif" height="400px"/>
+  <img src="./assets/drum-vae.gif" height="600px"/>
 </p>
 
 
