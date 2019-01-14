@@ -156,7 +156,7 @@ export default class LatentGraph {
           (40 + 0.35 * (160 - radius)) * this.graphWidth / 500,
           (60 + 0.35 * (160 - radius)) * this.graphWidth / 500,
         ];
-        let yTextPos = (40 + radius * 0.2) * this.graphWidth / 500;
+        let yTextPos = (40 + radius * 0.08) * this.graphWidth / 500;
         let textGap = 5;
 
         ctx.fillStyle = this.redColor;

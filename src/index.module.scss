@@ -60,11 +60,19 @@ body {
   @extend .links;
   top: 1.5rem;
   font-size: 1.2rem;
+  @media screen and (max-width: 1500px) {
+    top: 0.7rem;
+  }
+  // @media screen and (max-width: 1000px) {
+  //   font-size: 0.9rem;
+  //   top: 0rem;
+  // }
 
   a {
     letter-spacing: 0.3rem;
     margin-right: 1rem;
     padding-bottom: 5px;
+
   }
 
   .btn {
@@ -81,6 +89,13 @@ body {
       &:hover{
         opacity: 1.0;
       }
+
+      @media screen and (max-width: 1500px) {
+        width: 1.0rem;
+      }
+      // @media screen and (max-width: 1000px) {
+      //   width: 0.9rem;
+      // }
     }
   }
 
@@ -91,12 +106,14 @@ body {
 
     p {
       margin: 0.1rem;
-      font-size: 1rem;
+      font-size: 0.9rem;
+      @media screen and (max-width: 1000px) {
+        font-size: 0.7rem;
+      }
+
     }
 
-    @media screen and (max-width: 1000px) {
-      margin: 2rem auto;
-    }
+
   }
 
 }

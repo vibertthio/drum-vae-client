@@ -73,7 +73,7 @@ export default class Renderer {
     this.latentGraph.widthRatio = 1.0;
     this.latentGraph.heightRatio = 1.7;
     this.latentGraph.xShiftRatio = 0;
-    this.latentGraph.yShiftRatio = 0.8;
+    this.latentGraph.yShiftRatio = 1.0;
     this.latentGraph.showIndication = false;
   }
 
@@ -203,6 +203,26 @@ export default class Renderer {
 
 
     for (let t = 0; t < 96; t += 1) {
+
+      if (t === this.beat) {
+        const pos = Math.floor(t / 6) * 6;
+        ctx.save();
+        ctx.translate((pos + 0.5) * w_step, 9.5 * h_step);
+        ctx.fillStyle = this.noteOnCurrentColor;
+        ctx.beginPath();
+        ctx.arc(0, 0, w_step * 0.5, 0, 2 * Math.PI, true);
+        ctx.fill();
+        ctx.restore();
+      } else if (t % 6 === 0) {
+        ctx.save();
+        ctx.translate((t + 0.5) * w_step, 9.5 * h_step);
+        ctx.strokeStyle = this.noteOnCurrentColor;
+        ctx.beginPath();
+        ctx.arc(0, 0, w_step * 0.1, 0, 2 * Math.PI, true);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       for (let d = 0; d < 9; d += 1) {
         let recW = w_step;
         let recH = h_step;
@@ -210,7 +230,7 @@ export default class Renderer {
         ctx.translate((t + 0.5) * w_step, (d + 0.5) * h_step);
         if (this.matrix[t][8 - d] > 0) {
 
-          if (Math.abs(this.beat - t) < 3) {
+          if (Math.abs(this.beat - t) < 2) {
             ctx.fillStyle = this.noteOnCurrentColor;
             recW = w_step * 1.5;
             recH = h_step * 0.8;
@@ -398,7 +418,7 @@ export default class Renderer {
     // encoder
     ctx.save();
 
-    ctx.translate(this.gridWidth * 0.25, this.gridHeight * -0.5);
+    ctx.translate(this.gridWidth * 0.25, this.gridHeight * -0.4);
     this.drawFrame(ctx, this.gridWidth * 0.4, this.gridHeight * 0.6);
 
     ctx.save();
@@ -413,7 +433,7 @@ export default class Renderer {
     // decoder
     ctx.save();
 
-    ctx.translate(this.gridWidth * -0.25, this.gridHeight * -0.5);
+    ctx.translate(this.gridWidth * -0.25, this.gridHeight * -0.4);
     this.drawFrame(ctx, this.gridWidth * 0.4, this.gridHeight * 0.6);
 
     ctx.save();
