@@ -1,5 +1,5 @@
 <h1 align="center">
-🔍 Latent Inspector | <a href="http://vibertthio.com/drum-vae-client/public/" target="_blank">Play It<a/>
+🔍 Latent Inspector | <a href="http://vibertthio.com/drum-vae-client/" target="_blank">Play It<a/>
 </h1>
 
 <h4 align="center">
